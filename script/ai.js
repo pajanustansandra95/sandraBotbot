@@ -1,39 +1,35 @@
-const { Hercai } = require('hercai');
-const herc = new Hercai();
-
+const axios = require('axios');
 module.exports.config = {
   name: 'ai',
-  version: '1.1.0',
-  hasPermssion: 0,
-  credits: 'Yan Maglinte | Liane Cagara',
-  description: 'An AI command using Hercai API!',
+  version: '1.0.0',
+  role: 0,
   hasPrefix: false,
-  allowPrefix: true,
-  commandCategory: 'chatbots',
-  usages: 'Ai [prompt]',
-  cooldowns: 5,
+  aliases: ['gpt', 'openai'],
+  description: "An AI command powered by GPT-4",
+  usage: "Ai [prompt]",
+  credits: 'Lorex',
+  cooldown: 3,
 };
-
-module.exports.run = async function ({ api, event, args, box }) {
-  const prompt = args.join(' ');
-  if (!box) {
-    return api.sendMessage(`Unsupported.`, event.threadID);
+module.exports.run = async function({
+  api,
+  event,
+  args
+}) {
+  const input = args.join(' ');
+  if (!input) {
+    api.sendMessage(`Hello there!\n\nI am GPT-4, your advanced AI companion for insightful conversations, creative ideas, and helpful guidance!\n\nusage: ai what is love?`, event.threadID, event.messageID);
+    return;
   }
-
+  api.sendMessage(`Generating...`, event.threadID, event.messageID);
   try {
-    // Available Models: "v3", "v3-32k", "turbo", "turbo-16k", "gemini"
-    if (!prompt) {
-      box.reply('Please specify a message!');
-      box.react('❓');
-    } else {
-      const info = await box.reply(`Fetching answer...`);
-      box.react('⏱️');
-      const response = await herc.question({ model: 'v3', content: prompt });
-      await box.edit(response.reply, info.messageID);
-      box.react('');
-    }
+    const {
+      data
+    } = await axios.get(`https://markdevs-last-api-cvxr.onrender.com/gpt4?prompt=${encodeURIComponent(input)}&uid=${event.senderID}`);
+    let response = data.gpt4;
+    // Prepend "GPT-4" to the beginning of the response
+    response = "⡷⠂GPT-4⠐⢾\n\n" + response;
+    api.sendMessage(response + '', event.threadID, event.messageID);
   } catch (error) {
-    box.reply('⚠️ Something went wrong: ' + error);
-    box.react('⚠️');
+    api.sendMessage('An error occurred while processing your request.', event.threadID, event.messageID);
   }
 };
