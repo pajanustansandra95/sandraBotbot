@@ -1,60 +1,80 @@
-const { TempMail } = require("1secmail-api");
 
-function generateRandomId() {
-		var length = 6;
-		var characters = 'abcdefghijklmnopqrstuvwxyz0123456789';
-		var randomId = '';
+const axios = require('axios');
 
-		for (var i = 0; i < length; i++) {
-				randomId += characters.charAt(Math.floor(Math.random() * characters.length));
-		}
+// Function to generate a temporary email address
+async function generateTempEmail() {
+  try {
+    const { data } = await axios.get('https://apis-samir.onrender.com/tempmail/get');
 
-		return randomId;
+    if (data && data.email) {
+      return data.email;
+    } else {
+      throw new Error('Failed to generate temporary email: Invalid response from the API');
+    }
+  } catch (error) {
+    throw new Error('Failed to generate temporary email: ' + error.message);
+  }
+}
+
+// Function to get inbox messages for a given email
+async function getInbox(email) {
+  try {
+    const { data } = await axios.get(`https://apis-samir.onrender.com/tempmail/inbox/${encodeURIComponent(email)}`);
+
+    if (Array.isArray(data)) {
+      return data;
+    } else {
+      throw new Error('Failed to fetch inbox messages: Invalid response from the API');
+    }
+  } catch (error) {
+    throw new Error('Failed to fetch inbox messages: ' + error.message);
+  }
 }
 
 module.exports.config = {
-		name: "tempm",
-		role: 2,
-		credits: "Deku",
-		description: "Generate temporary email (auto get inbox)",
-		usages: "[tempmail]",
-		hasPrefix: false,
-		cooldown: 5,
-		aliases: ["temp"]
+  name: 'tempmail',
+  version: '1.0.0',
+  role: 0,
+  hasPrefix: true,
+  description: 'Generate a temporary email or check its inbox.',
+  usage: 'tempmail [create | inbox email]',
+  credits: 'Lorex',
+  cooldown: 3,
 };
 
-module.exports.run = async function ({ api, event }) {
-		const reply = (msg) => api.sendMessage(msg, event.threadID, event.messageID);
+module.exports.run = async function({ api, event, args }) {
+  const subCommand = args[0];
 
-		try {
-				// Generate temporary email
-				const mail = new TempMail(generateRandomId());
+  if (subCommand === 'create') {
+    try {
+      const tempEmail = await generateTempEmail();
+      api.sendMessage(`Temporary email created\n\n${tempEmail}`, event.threadID, event.messageID);
+    } catch (error) {
+      api.sendMessage(error.message, event.threadID, event.messageID);
+      console.error(error);
+    }
+  } else if (subCommand === 'inbox') {
+    const email = args[1];
 
-				// Auto fetch
-				mail.autoFetch();
+    if (!email) {
+      api.sendMessage('Please provide an email to check its inbox.', event.threadID, event.messageID);
+      return;
+    }
 
-				if (mail) reply("Your temporary email: " + mail.address);
+    try {
+      const inboxMessages = await getInbox(email);
+      let inboxText = 'Inbox Messages: 📬\n\n';
 
-				// Fetch function
-				const fetch = () => {
-						mail.getMail().then((mails) => {
-								if (!mails[0]) {
-										return;
-								} else {
-										let b = mails[0];
-										var msg = `You have a message!\n\nFrom: ${b.from}\n\nSubject: ${b.subject}\n\nMessage: ${b.textBody}\nDate: ${b.date}`;
-										reply(msg + `\n\nOnce the email and message are received, they will be automatically deleted.`);
-										return mail.deleteMail();
-								}
-						});
-				};
+      inboxMessages.forEach(message => {
+        inboxText += `📩 Sender: ${message.from}\n📨 Subject: ${message.subject}\n📝 Message: ${message.body}\n\n========================================\n\n`;
+      });
 
-				// Auto fetch every 3 seconds
-				fetch();
-				setInterval(fetch, 3 * 1000);
-
-		} catch (err) {
-				console.log(err);
-				return reply(err.message);
-		}
+      api.sendMessage(inboxText, event.threadID, event.messageID);
+    } catch (error) {
+      api.sendMessage(error.message, event.threadID, event.messageID);
+      console.error(error);
+    }
+  } else {
+    api.sendMessage(`Invalid sub-command. Usage: ${module.exports.config.usage}`, event.threadID, event.messageID);
+  }
 };
