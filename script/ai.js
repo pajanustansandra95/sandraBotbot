@@ -17,17 +17,17 @@ module.exports.run = async function({
 }) {
   const input = args.join(' ');
   if (!input) {
-    api.sendMessage(`Hello there!\n\nI am GPT-4, your advanced AI companion for insightful conversations, creative ideas, and helpful guidance!\n\nusage: ai what is love?`, event.threadID, event.messageID);
+    api.sendMessage(`Hello there!\n\nI am 𝗟𝗼𝗿𝗲𝘅 𝗔𝗶, your gateway to 𝗚𝗣𝗧-𝟰. I am AI companion for insightful conversations, creative ideas, and helpful guidance!\n\nusage: ai what is love?`, event.threadID, event.messageID);
     return;
   }
   api.sendMessage(`Generating...`, event.threadID, event.messageID);
   try {
     const {
       data
-    } = await axios.get(`https://markdevs-last-api-cvxr.onrender.com/gpt4?prompt=${encodeURIComponent(input)}&uid=${event.senderID}`);
+    } = await axios.get(`https://markdevs-last-api-a4sm.onrender.com/gpt4?prompt=${encodeURIComponent(input)}&uid=${event.senderID}`);
     let response = data.gpt4;
     // Prepend "GPT-4" to the beginning of the response
-    response = "⡷⠂GPT-4⠐⢾\n\n" + response;
+    response = "" + response;
     api.sendMessage(response + '', event.threadID, event.messageID);
   } catch (error) {
     api.sendMessage('An error occurred while processing your request.', event.threadID, event.messageID);
